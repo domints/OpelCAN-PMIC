@@ -1,0 +1,4 @@
+uart.c:19:6:uart_reset	1
+uart.c:23:6:uart_start	1
+uart.c:28:6:uart_interrupt	20
+uart.c:89:6:_uart_parse_command	6
