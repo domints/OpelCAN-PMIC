@@ -6,6 +6,7 @@
  */
 
 #include "circ_buf.h"
+#include <string.h>
 
 int circ_buf_push(circ_buf_t *c, uint8_t data) {
 	int next;
@@ -51,17 +52,16 @@ int circ_buf_push_bytes(circ_buf_t *c, uint8_t *data, int size) {
 	}
 
 	int data_ix = 0;
-	for (int i = 0; i < firstBatch; i++) {
-		c->buffer[c->head++] = data[data_ix++];
-	}
+	memcpy(c->buffer + c->head, data, firstBatch);
+	c->head += firstBatch;
+	data_ix += firstBatch;
 
 	if (c->head >= c->maxlen)
 		c->head = 0;
 
 	if (secondBatch > 0) {
-		for (int i = 0; i < secondBatch; i++) {
-			c->buffer[c->head++] = data[data_ix++];
-		}
+		memcpy(c->buffer, data + data_ix, secondBatch);
+		c->head += secondBatch;
 	}
 
 	return sizeToWrite;

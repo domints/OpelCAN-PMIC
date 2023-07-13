@@ -4,9 +4,10 @@
  *  Created on: Jul 11, 2023
  *      Author: dominik
  */
+#include <stdbool.h>
+#include <string.h>
 #include "main.h"
 #include "can_tx.h"
-#include <stdbool.h>
 
 CAN_HandleTypeDef can_tx_hcan;
 
@@ -39,25 +40,19 @@ void can_tx_set_hcan(CAN_HandleTypeDef *hcan) {
 }
 
 void can_tx_set_title(uint8_t *buf, uint8_t len) {
-	for (uint8_t ix = 0; ix < len; ix++) {
-		audio_title[ix] = buf[ix];
-	}
+	memcpy(audio_title, buf, len);
 
 	audio_title_len = len;
 }
 
 void can_tx_set_artist(uint8_t *buf, uint8_t len) {
-	for (uint8_t ix = 0; ix < len; ix++) {
-		audio_artist[ix] = buf[ix];
-	}
+	memcpy(audio_artist, buf, len);
 
 	audio_artist_len = len;
 }
 
 void can_tx_set_album(uint8_t *buf, uint8_t len) {
-	for (uint8_t ix = 0; ix < len; ix++) {
-		audio_album[ix] = buf[ix];
-	}
+	memcpy(audio_album, buf, len);
 
 	audio_album_len = len;
 }
@@ -66,9 +61,7 @@ void can_tx_send_packet(uint32_t id, uint8_t *data, uint8_t len) {
 	if (can_tx_head == can_tx_tail && can_tx_cts) {
 		CAN_Tx_Msg_t msg = { .id = id, .len = len };
 
-		for (uint8_t i = 0; i < len; i++) {
-			msg.data[i] = data[i];
-		}
+		memcpy(msg.data, data, len);
 
 		_can_tx_send_msg(&msg);
 		return;
@@ -85,9 +78,7 @@ void can_tx_send_packet(uint32_t id, uint8_t *data, uint8_t len) {
 
 	can_tx_mailbox[can_tx_head].id = id;
 	can_tx_mailbox[can_tx_head].len = len;
-	for (uint8_t i = 0; i < len; i++) {
-		can_tx_mailbox[can_tx_head].data[i] = data[i];
-	}
+	memcpy(can_tx_mailbox[can_tx_head].data, data, len);
 
 	can_tx_head = next;
 
@@ -115,13 +106,7 @@ void _can_tx_send_msg(CAN_Tx_Msg_t *message) {
 	TxHeader.StdId = message->id;
 	TxHeader.DLC = message->len;
 
-	for (uint8_t i = 0; i < message->len; i++) {
-		TxData[i] = message->data[i];
-	}
-
-	for (uint8_t i = message->len; i < 8; i++) {
-		TxData[i] = 0x00;
-	}
+	memcpy(TxData, message->data, message->len);
 
 	if (HAL_CAN_AddTxMessage(&can_tx_hcan, &TxHeader, TxData, &TxMailbox)
 			!= HAL_OK) {

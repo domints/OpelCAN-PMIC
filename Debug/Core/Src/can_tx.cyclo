@@ -1,8 +1,8 @@
-../Core/Src/can_tx.c:32:6:can_tx_set_hcan	1
-../Core/Src/can_tx.c:41:6:can_tx_set_title	2
-../Core/Src/can_tx.c:49:6:can_tx_set_artist	2
-../Core/Src/can_tx.c:57:6:can_tx_set_album	2
-../Core/Src/can_tx.c:65:6:can_tx_send_packet	8
-../Core/Src/can_tx.c:99:6:_can_tx_send_and_dequeue	3
-../Core/Src/can_tx.c:113:6:_can_tx_send_msg	4
-../Core/Src/can_tx.c:134:6:HAL_CAN_TxMailbox0CompleteCallback	1
+../Core/Src/can_tx.c:33:6:can_tx_set_hcan	1
+../Core/Src/can_tx.c:42:6:can_tx_set_title	1
+../Core/Src/can_tx.c:48:6:can_tx_set_artist	1
+../Core/Src/can_tx.c:54:6:can_tx_set_album	1
+../Core/Src/can_tx.c:60:6:can_tx_send_packet	6
+../Core/Src/can_tx.c:90:6:_can_tx_send_and_dequeue	3
+../Core/Src/can_tx.c:104:6:_can_tx_send_msg	2
+../Core/Src/can_tx.c:119:6:HAL_CAN_TxMailbox0CompleteCallback	1
