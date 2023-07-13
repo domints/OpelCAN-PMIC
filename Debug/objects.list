@@ -1,4 +1,6 @@
 "./Core/Src/can_tx.o"
+"./Core/Src/circ_buf.o"
+"./Core/Src/esp.o"
 "./Core/Src/main.o"
 "./Core/Src/stm32f0xx_hal_msp.o"
 "./Core/Src/stm32f0xx_it.o"
