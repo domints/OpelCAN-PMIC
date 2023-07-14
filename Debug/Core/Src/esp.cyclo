@@ -1,4 +1,5 @@
-../Core/Src/esp.c:26:6:esp_reset	1
-../Core/Src/esp.c:30:6:esp_receive_uart	3
-../Core/Src/esp.c:47:6:stuff	1
-../Core/Src/esp.c:108:6:_esp_parse_command	6
+../Core/Src/esp.c:27:6:esp_reset	1
+../Core/Src/esp.c:31:6:esp_receive_uart	3
+../Core/Src/esp.c:44:6:_esp_process_uart_byte	19
+../Core/Src/esp.c:105:6:_esp_debug_size	1
+../Core/Src/esp.c:115:6:_esp_parse_command	6
