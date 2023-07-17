@@ -6,6 +6,7 @@
  */
 
 #include "esp.h"
+#include "main.h"
 #include "uart.h"
 #include "can_tx.h"
 
@@ -21,6 +22,9 @@ uint8_t text_ix = 0;
 
 uint8_t msgCnt = 0;
 
+bool next_song_requested = false;
+bool prev_song_requested = false;
+
 void _esp_parse_command();
 void _esp_process_uart_byte(uint8_t data);
 
@@ -28,12 +32,22 @@ void esp_reset() {
 	mode = UART_MODE_RESET;
 }
 
+uint8_t started = 0;
+
+void esp_start() {
+	HAL_GPIO_WritePin(BUCK_EN_GPIO_Port, BUCK_EN_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(CAN_LP_GPIO_Port, CAN_LP_Pin, GPIO_PIN_RESET);
+}
+
+void esp_kill() {
+	HAL_GPIO_WritePin(CAN_LP_GPIO_Port, CAN_LP_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(BUCK_EN_GPIO_Port, BUCK_EN_Pin, GPIO_PIN_RESET);
+	esp_reset();
+}
+
 void esp_receive_uart() {
 	int available = uart_data_available();
 	if (available) {
-		uint8_t txdata2[5] = { mode, command, size >> 8 & 0xFF, size & 0xFF, text_ix };
-		can_tx_send_packet(0x001, txdata2, 5);
-
 		for (int i = 0; i < available; i++) {
 			uint8_t value = uart_get_byte() & 0xFF;
 			_esp_process_uart_byte(value);
@@ -98,18 +112,26 @@ void _esp_process_uart_byte(uint8_t value) {
 	}
 }
 
-uint16_t title_sz;
-uint16_t album_sz;
-uint16_t artist_sz;
-uint8_t debug_ctr;
-void _esp_debug_size() {
-	uint8_t txdata2[7] = {
-			debug_ctr++,
-			title_sz >> 8 & 0xFF, title_sz & 0xff,
-			album_sz >> 8 & 0xFF, album_sz & 0xff,
-			artist_sz >> 8 & 0xFF, artist_sz & 0xff
-	};
-	can_tx_send_packet(0x002, txdata2, 7);
+void esp_next_song() {
+	next_song_requested = true;
+}
+
+void esp_prev_song() {
+	prev_song_requested = true;
+}
+
+void esp_run_can_events() {
+	if (prev_song_requested) {
+		prev_song_requested = false;
+		uint8_t data[1] = { CMD_PREV };
+		uart_send_data(data, 1);
+	}
+
+	if (next_song_requested) {
+		next_song_requested = false;
+		uint8_t data[1] = { CMD_NEXT };
+		uart_send_data(data, 1);
+	}
 }
 
 void _esp_parse_command() {
@@ -118,15 +140,12 @@ void _esp_parse_command() {
 
 	switch (command) {
 	case CMD_TITLE:
-		_esp_debug_size();
 		can_tx_set_title(text_buf, size);
 		break;
 	case CMD_ARTIST:
-		_esp_debug_size();
 		can_tx_set_artist(text_buf, size);
 		break;
 	case CMD_ALBUM:
-		_esp_debug_size();
 		can_tx_set_album(text_buf, size);
 		break;
 	default:

@@ -1,5 +1,9 @@
-../Core/Src/esp.c:27:6:esp_reset	1
-../Core/Src/esp.c:31:6:esp_receive_uart	3
-../Core/Src/esp.c:44:6:_esp_process_uart_byte	19
-../Core/Src/esp.c:105:6:_esp_debug_size	1
-../Core/Src/esp.c:115:6:_esp_parse_command	6
+../Core/Src/esp.c:31:6:esp_reset	1
+../Core/Src/esp.c:37:6:esp_start	1
+../Core/Src/esp.c:42:6:esp_kill	1
+../Core/Src/esp.c:48:6:esp_receive_uart	3
+../Core/Src/esp.c:58:6:_esp_process_uart_byte	19
+../Core/Src/esp.c:115:6:esp_next_song	1
+../Core/Src/esp.c:119:6:esp_prev_song	1
+../Core/Src/esp.c:123:6:esp_run_can_events	3
+../Core/Src/esp.c:137:6:_esp_parse_command	6

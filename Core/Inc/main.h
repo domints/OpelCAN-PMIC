@@ -53,8 +53,7 @@ extern "C" {
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
-void Audio_Start();
-void Audio_Kill();
+
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
@@ -64,7 +63,7 @@ void Audio_Kill();
 #define BUCK_EN_GPIO_Port GPIOA
 
 /* USER CODE BEGIN Private defines */
-#define OPEL_POWER_ID 0x501
+
 
 /* USER CODE END Private defines */
 

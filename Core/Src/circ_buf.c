@@ -82,3 +82,43 @@ int circ_buf_pop(circ_buf_t *c) {
 	return val;  // return success to indicate successful push.
 }
 
+int circ_buf_pop_bytes(circ_buf_t *c, uint8_t *data, int size) {
+	if (size > c->maxlen || c->head == c->tail) {
+			return -1;
+	}
+
+	int firstBatch = 0;
+	int secondBatch = 0;
+
+	if (c->head > c->tail) {
+		firstBatch = c->head - c->tail;
+	}
+	else {
+		firstBatch = c->maxlen - c->tail;
+		secondBatch = c->head;
+	}
+
+	if (size < firstBatch) {
+		secondBatch = 0;
+		firstBatch = size;
+	}
+	else if (size < firstBatch + secondBatch) {
+		secondBatch = size - firstBatch;
+	}
+
+	int data_ix = 0;
+	memcpy(data, c->buffer + c->tail, firstBatch);
+	c->tail += firstBatch;
+	data_ix += firstBatch;
+
+	if (c->tail == c->maxlen)
+		c->tail = 0;
+
+	if (secondBatch > 0) {
+		memcpy(data + data_ix, c->buffer, secondBatch);
+		c->tail += secondBatch;
+	}
+
+	return firstBatch + secondBatch;
+}
+

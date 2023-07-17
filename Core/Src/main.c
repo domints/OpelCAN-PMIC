@@ -25,6 +25,7 @@
 #include "uart.h"
 #include "esp.h"
 #include "can_tx.h"
+#include "can_rx.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -48,13 +49,13 @@ uint8_t _power_down_message[8] = { 0x11, 0x00, 0x00, 0x18, 0x00, 0x00, 0x00,
 /* Private variables ---------------------------------------------------------*/
 CAN_HandleTypeDef hcan;
 
+TIM_HandleTypeDef htim2;
+
 UART_HandleTypeDef huart1;
 DMA_HandleTypeDef hdma_usart1_rx;
+DMA_HandleTypeDef hdma_usart1_tx;
 
 /* USER CODE BEGIN PV */
-
-CAN_RxHeaderTypeDef RxHeader;
-uint8_t RxData[8];
 
 /* USER CODE END PV */
 
@@ -64,6 +65,7 @@ static void MX_GPIO_Init(void);
 static void MX_DMA_Init(void);
 static void MX_CAN_Init(void);
 static void MX_USART1_UART_Init(void);
+static void MX_TIM2_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -104,6 +106,7 @@ int main(void)
   MX_DMA_Init();
   MX_CAN_Init();
   MX_USART1_UART_Init();
+  MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
 
 	uart_start(&huart1);
@@ -113,6 +116,7 @@ int main(void)
   /* USER CODE BEGIN WHILE */
 	while (1) {
 		esp_receive_uart();
+		esp_run_can_events();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -223,11 +227,57 @@ static void MX_CAN_Init(void)
 	}
 
 	/*##-4- Activate CAN RX notification #######################################*/
-	if (HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_TX_MAILBOX_EMPTY) != HAL_OK) {
+	if (HAL_CAN_ActivateNotification(&hcan,
+			CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_TX_MAILBOX_EMPTY) != HAL_OK) {
 		/* Notification Error */
 		Error_Handler();
 	}
   /* USER CODE END CAN_Init 2 */
+
+}
+
+/**
+  * @brief TIM2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM2_Init(void)
+{
+
+  /* USER CODE BEGIN TIM2_Init 0 */
+
+  /* USER CODE END TIM2_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM2_Init 1 */
+
+  /* USER CODE END TIM2_Init 1 */
+  htim2.Instance = TIM2;
+  htim2.Init.Prescaler = 4266;
+  htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim2.Init.Period = 25;
+  htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
+  if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM2_Init 2 */
+	HAL_TIM_Base_Start_IT(&htim2);
+  /* USER CODE END TIM2_Init 2 */
 
 }
 
@@ -315,33 +365,13 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hCan) {
-	/* Get RX message */
-	if (HAL_CAN_GetRxMessage(hCan, CAN_RX_FIFO0, &RxHeader, RxData) != HAL_OK) {
-		/* Reception Error */
-		Error_Handler();
+
+
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
+	if (htim->Instance == TIM2) //check if the interrupt comes from TIM3
+	{
+		can_tx_send_next();
 	}
-
-	if ((RxHeader.StdId == OPEL_POWER_ID) && (RxHeader.IDE == CAN_ID_STD)
-			&& (RxHeader.DLC == 8)) {
-		if (RxData[6] & 0x40) {
-			Audio_Start();
-		} else {
-			Audio_Kill();
-		}
-	}
-}
-
-void Audio_Start() {
-	HAL_GPIO_WritePin(BUCK_EN_GPIO_Port, BUCK_EN_Pin, GPIO_PIN_SET);
-	HAL_GPIO_WritePin(CAN_LP_GPIO_Port, CAN_LP_Pin, GPIO_PIN_RESET);
-}
-
-void Audio_Kill() {
-	HAL_GPIO_WritePin(CAN_LP_GPIO_Port, CAN_LP_Pin, GPIO_PIN_SET);
-	HAL_GPIO_WritePin(BUCK_EN_GPIO_Port, BUCK_EN_Pin, GPIO_PIN_RESET);
-
-	esp_reset();
 }
 
 /* USER CODE END 4 */

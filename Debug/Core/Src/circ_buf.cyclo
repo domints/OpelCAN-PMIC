@@ -1,3 +1,4 @@
 ../Core/Src/circ_buf.c:11:5:circ_buf_push	3
 ../Core/Src/circ_buf.c:26:5:circ_buf_push_bytes	7
 ../Core/Src/circ_buf.c:70:5:circ_buf_pop	3
+../Core/Src/circ_buf.c:85:5:circ_buf_pop_bytes	8

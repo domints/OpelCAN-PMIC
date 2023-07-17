@@ -9,6 +9,7 @@
 #define INC_ESP_H_
 
 #include <stdint.h>
+#include "stm32f0xx_hal.h"
 
 #define CMD_SHUTDOWN 0xFE
 #define CMD_PLAYPAUSE 0x01
@@ -33,7 +34,12 @@
 #define UART_MODE_RESET 0xFE
 
 void esp_reset();
+void esp_start();
+void esp_kill();
 void esp_receive_uart();
+void esp_run_can_events();
 
+void esp_next_song();
+void esp_prev_song();
 
 #endif /* INC_ESP_H_ */

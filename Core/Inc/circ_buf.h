@@ -29,5 +29,6 @@ typedef struct {
 int circ_buf_push(circ_buf_t *c, uint8_t data);
 int circ_buf_pop(circ_buf_t *c);
 int circ_buf_push_bytes(circ_buf_t *c, uint8_t *data, int size);
+int circ_buf_pop_bytes(circ_buf_t *c, uint8_t *data, int size);
 
 #endif /* INC_CIRC_BUF_H_ */
