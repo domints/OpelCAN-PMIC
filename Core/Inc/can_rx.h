@@ -12,7 +12,7 @@
 #include "stm32f0xx_hal.h"
 #include "can.h"
 
-
+void can_rx_tick();
 
 
 #endif /* INC_CAN_RX_H_ */

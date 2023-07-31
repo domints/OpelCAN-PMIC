@@ -34,6 +34,10 @@ void uart_send_data(uint8_t * data, uint8_t len) {
 }
 
 
+void uart_nop() {
+
+}
+
 
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size) {
 	if (huart->Instance == USART1) {
@@ -44,9 +48,14 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size) {
 			circ_buf_push_bytes(&uart_ring_buf, uart_byte_buf + copyIx,
 					copySize);
 		}
+
 		HAL_UARTEx_ReceiveToIdle_DMA(huart, uart_byte_buf, UART_BUFFER_SIZE);
 		__HAL_DMA_DISABLE_IT(huart->hdmarx, DMA_IT_HT);
 	}
+}
+
+void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
+	uart_nop();
 }
 
 

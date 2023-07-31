@@ -9,9 +9,11 @@
 #define INC_ESP_H_
 
 #include <stdint.h>
+#include <stdbool.h>
 #include "stm32f0xx_hal.h"
 
 #define CMD_SHUTDOWN 0xFE
+#define CMD_START 0xFD
 #define CMD_PLAYPAUSE 0x01
 #define CMD_NEXT 0x02
 #define CMD_PREV 0x03
@@ -41,5 +43,9 @@ void esp_run_can_events();
 
 void esp_next_song();
 void esp_prev_song();
+void esp_disconnect();
+void esp_reconnect();
+bool esp_is_connected();
+
 
 #endif /* INC_ESP_H_ */

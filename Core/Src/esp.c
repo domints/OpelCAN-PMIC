@@ -22,8 +22,12 @@ uint8_t text_ix = 0;
 
 uint8_t msgCnt = 0;
 
-bool next_song_requested = false;
-bool prev_song_requested = false;
+volatile bool next_song_requested = false;
+volatile bool prev_song_requested = false;
+volatile bool disconnect_requested = false;
+volatile bool reconnect_requested = false;
+volatile bool connected = false;
+volatile bool push_metadata = false;
 
 void _esp_parse_command();
 void _esp_process_uart_byte(uint8_t data);
@@ -32,20 +36,51 @@ void esp_reset() {
 	mode = UART_MODE_RESET;
 }
 
-uint8_t started = 0;
+bool started = false;
+bool shutdown_requested = false;
+uint8_t shutdown_ticks = 0;
 
 void esp_start() {
-	HAL_GPIO_WritePin(BUCK_EN_GPIO_Port, BUCK_EN_Pin, GPIO_PIN_SET);
-	HAL_GPIO_WritePin(CAN_LP_GPIO_Port, CAN_LP_Pin, GPIO_PIN_RESET);
+	if (!started) {
+		HAL_GPIO_WritePin(BUCK_EN_GPIO_Port, BUCK_EN_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(CAN_LP_GPIO_Port, CAN_LP_Pin, GPIO_PIN_RESET);
+		connected = true;
+		started = true;
+	}
 }
 
 void esp_kill() {
-	HAL_GPIO_WritePin(CAN_LP_GPIO_Port, CAN_LP_Pin, GPIO_PIN_SET);
-	HAL_GPIO_WritePin(BUCK_EN_GPIO_Port, BUCK_EN_Pin, GPIO_PIN_RESET);
-	esp_reset();
+	if (started) {
+		shutdown_ticks = 0;
+		shutdown_requested = true;
+		started = false;
+		esp_reset();
+	}
+}
+
+void esp_tick() {
+	if (shutdown_requested) {
+		if (shutdown_ticks == 0) {
+			uint8_t data[1] = { CMD_SHUTDOWN };
+			uart_send_data(data, 1);
+		}
+		if (shutdown_ticks >= 4) {
+			HAL_GPIO_WritePin(CAN_LP_GPIO_Port, CAN_LP_Pin, GPIO_PIN_SET);
+			HAL_GPIO_WritePin(BUCK_EN_GPIO_Port, BUCK_EN_Pin, GPIO_PIN_RESET);
+			shutdown_requested = false;
+		}
+		else
+		{
+			shutdown_ticks++;
+		}
+	}
 }
 
 void esp_receive_uart() {
+	if (!started) {
+		return;
+	}
+
 	int available = uart_data_available();
 	if (available) {
 		for (int i = 0; i < available; i++) {
@@ -120,6 +155,18 @@ void esp_prev_song() {
 	prev_song_requested = true;
 }
 
+void esp_disconnect() {
+	disconnect_requested = true;
+}
+
+void esp_reconnect() {
+	reconnect_requested = true;
+}
+
+bool esp_is_connected() {
+	return connected;
+}
+
 void esp_run_can_events() {
 	if (prev_song_requested) {
 		prev_song_requested = false;
@@ -131,6 +178,25 @@ void esp_run_can_events() {
 		next_song_requested = false;
 		uint8_t data[1] = { CMD_NEXT };
 		uart_send_data(data, 1);
+	}
+
+	if (disconnect_requested) {
+		disconnect_requested = false;
+		//uint8_t data[1] = { CMD_SHUTDOWN };
+		//uart_send_data(data, 1);
+		connected = false;
+	}
+
+	if (reconnect_requested) {
+		reconnect_requested = false;
+		//uint8_t data[1] = { CMD_START };
+		//uart_send_data(data, 1);
+		connected = true;
+	}
+
+	if (push_metadata) {
+		push_metadata = false;
+		can_tx_send_music_metadata();
 	}
 }
 
@@ -148,6 +214,8 @@ void _esp_parse_command() {
 	case CMD_ALBUM:
 		can_tx_set_album(text_buf, size);
 		break;
+	case CMD_TIME:
+		push_metadata = true;
 	default:
 		break;
 	}
