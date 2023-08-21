@@ -26,6 +26,6 @@
 #define BTN_RADIO_MAIN 0xE0
 #define BTN_RADIO_BC 0x01
 
-//#define ONLY_AUX 1
+#define ONLY_AUX 1
 
 #endif /* INC_CAN_H_ */

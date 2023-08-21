@@ -17,6 +17,8 @@ uint8_t seen_packets = 0;
 
 uint32_t last_seen = 0;
 
+bool wait_for_2nd_to_corrupt = false;
+
 bool _can_rx_is_aux_packet(uint8_t *data);
 bool _can_rx_is_non_aux_packet(uint8_t *data);
 
@@ -40,7 +42,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hCan) {
 	else if ((RxHeader.StdId == DISPLAY_CAN_ID) && (RxHeader.IDE == CAN_ID_STD) && (RxHeader.DLC == 8)) {
 		if (RxData[0] == 0x10) {
 			if (_can_rx_is_aux_packet(RxData)) {
-				can_tx_corrupt_ehu_packet();
+				wait_for_2nd_to_corrupt = true;
 				if (!esp_is_connected()) {
 					esp_reconnect();
 				}
@@ -62,7 +64,10 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hCan) {
 		}
 		else {
 			seen_packets++;
-
+			if (RxData[0] == 0x21 && wait_for_2nd_to_corrupt) {
+				wait_for_2nd_to_corrupt = false;
+				can_tx_corrupt_ehu_packet();
+			}
 			if (
 #ifdef ONLY_AUX
 					esp_is_connected() &&
