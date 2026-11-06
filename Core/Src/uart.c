@@ -3,19 +3,25 @@
 #include "circ_buf.h"
 
 uint8_t uart_byte_buf[UART_RING_BUFFER_SIZE];
-UART_HandleTypeDef uart_huart;
+UART_HandleTypeDef* uart_huart;
 
 CIRC_BUF_DEF(uart_ring_buf, UART_RING_BUFFER_SIZE);
 CIRC_BUF_DEF(uart_tx_buf, UART_TX_BUFFER_SIZE);
 
 bool uart_cts = true;
+bool uart_error_happened = false;
 
 void _uart_send_buffer();
+void _uart_restart_rx();
 
 void uart_start(UART_HandleTypeDef *uart) {
-	uart_huart = *uart;
-	HAL_UARTEx_ReceiveToIdle_DMA(uart, uart_byte_buf, UART_BUFFER_SIZE);
-	__HAL_DMA_DISABLE_IT(uart->hdmarx, DMA_IT_HT); // Theoretically I might be able to disable half transfers. But maybe let's implement rest n ow.
+	uart_huart = uart;
+	_uart_restart_rx();
+}
+
+void _uart_restart_rx() {
+	HAL_UARTEx_ReceiveToIdle_DMA(uart_huart, uart_byte_buf, UART_BUFFER_SIZE);
+	__HAL_DMA_DISABLE_IT(uart_huart->hdmarx, DMA_IT_HT);
 }
 
 int uart_data_available() {
@@ -30,12 +36,15 @@ int uart_get_byte() {
 }
 
 void uart_send_data(uint8_t * data, uint8_t len) {
-	HAL_UART_Transmit (&uart_huart, data, len, 100);
+	HAL_UART_Transmit (uart_huart, data, len, 100);
 }
 
 
-void uart_nop() {
-
+void uart_loop() {
+	if (uart_huart->RxState == HAL_UART_STATE_READY && uart_error_happened) {
+		uart_error_happened = false;
+		_uart_restart_rx();
+	}
 }
 
 
@@ -55,7 +64,7 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size) {
 }
 
 void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
-	uart_nop();
+	uart_error_happened = true;
 }
 
 

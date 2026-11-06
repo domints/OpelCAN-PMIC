@@ -24,6 +24,7 @@ typedef struct {
 } CAN_Tx_Msg_t;
 
 void can_tx_set_hcan(CAN_HandleTypeDef *hcan);
+void can_tx_loop();
 
 void can_tx_set_title(uint8_t * buf, uint8_t len);
 void can_tx_set_artist(uint8_t * buf, uint8_t len);
@@ -33,6 +34,9 @@ void can_tx_send_packet(uint32_t id, uint8_t* data, uint8_t len);
 void can_tx_corrupt_ehu_packet();
 void can_tx_send_next();
 void can_tx_send_music_metadata();
+void can_tx_try_send_metadata();
+void can_tx_possible_corruption();
+void can_tx_reset_metadata();
 
 
 #endif /* INC_CAN_TX_H_ */

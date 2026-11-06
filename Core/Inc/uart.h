@@ -19,5 +19,6 @@ void uart_start(UART_HandleTypeDef *uart);
 int uart_data_available();
 int uart_get_byte();
 void uart_send_data(uint8_t * data, uint8_t len);
+void uart_loop();
 
 #endif /* INC_UART_H_ */

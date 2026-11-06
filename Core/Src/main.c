@@ -114,9 +114,10 @@ int main(void) {
 	/* Infinite loop */
 	/* USER CODE BEGIN WHILE */
 	while (1) {
-		esp_tick();
+		uart_loop();
 		esp_receive_uart();
 		esp_run_can_events();
+		can_tx_loop();
 		/* USER CODE END WHILE */
 
 		/* USER CODE BEGIN 3 */
@@ -357,6 +358,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 	if (htim->Instance == TIM2) //check if the interrupt comes from TIM3
 	{
 		can_tx_send_next();
+		esp_tick();
 	}
 }
 

@@ -40,6 +40,7 @@ void esp_start();
 void esp_kill();
 void esp_receive_uart();
 void esp_run_can_events();
+void esp_tick();
 
 void esp_next_song();
 void esp_prev_song();

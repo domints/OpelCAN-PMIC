@@ -9,6 +9,8 @@
 #include "main.h"
 #include "can_tx.h"
 
+
+
 CAN_HandleTypeDef can_tx_hcan;
 
 CAN_TxHeaderTypeDef TxHeader;
@@ -19,6 +21,8 @@ CAN_Tx_Msg_t can_tx_mailbox[CAN_MAILBOX_LENGTH];
 bool can_tx_cts = true;
 bool corrupt_ehu = false;
 volatile bool sending_metadata = false;
+volatile bool metadata_send_requested = false;
+volatile bool metadata_tx_corrupted = false;
 uint8_t can_tx_head = 0;
 uint8_t can_tx_tail = 0;
 
@@ -32,9 +36,15 @@ uint8_t audio_artist_len;
 uint8_t audio_album[128];
 uint8_t audio_album_len;
 
+#define CAN_TX_HANDLE_CORRUPTION if (metadata_tx_corrupted) { metadata_tx_corrupted = false; return; }
 void _can_tx_send_msg(CAN_Tx_Msg_t *message);
 void _can_tx_send_and_dequeue();
-void _can_tx_try_send_metadata();
+
+void can_tx_possible_corruption() {
+	if (sending_metadata || metadata_send_requested) {
+		metadata_tx_corrupted = true;
+	}
+}
 
 void can_tx_set_hcan(CAN_HandleTypeDef *hcan) {
 	can_tx_hcan = *hcan;
@@ -48,25 +58,35 @@ void can_tx_set_hcan(CAN_HandleTypeDef *hcan) {
 void can_tx_set_title(uint8_t *buf, uint8_t len) {
 	memcpy(audio_title, buf, len);
 	audio_title_len = len;
-	_can_tx_try_send_metadata();
+	can_tx_try_send_metadata();
 }
 
 void can_tx_set_artist(uint8_t *buf, uint8_t len) {
 	memcpy(audio_artist, buf, len);
 	audio_artist_len = len;
-	_can_tx_try_send_metadata();
+	can_tx_try_send_metadata();
 }
 
 void can_tx_set_album(uint8_t *buf, uint8_t len) {
 	memcpy(audio_album, buf, len);
 	audio_album_len = len;
-	_can_tx_try_send_metadata();
+	can_tx_try_send_metadata();
 }
 
-void _can_tx_try_send_metadata() {
-	if (ticks_since_last_corrupt < CAN_SEND_BEFORE) {
+void can_tx_try_send_metadata() {
+	metadata_send_requested = true;
+}
+
+void can_tx_loop() {
+	if (metadata_send_requested) {
 		can_tx_send_music_metadata();
 	}
+}
+
+void can_tx_reset_metadata() {
+	audio_title_len = 0;
+	audio_artist_len = 0;
+	audio_album_len = 0;
 }
 
 void can_tx_send_packet(uint32_t id, uint8_t *data, uint8_t len) {
@@ -205,15 +225,21 @@ void can_tx_send_music_metadata() {
 			0x03, 0x00, 0x41 };
 	uint8_t buf_4[8] = { msgIx = _next_tp_id(msgIx), 0x00, 0x75, 0x00, 0x78,
 			0x10, title_len / 2, title[0] };
+	CAN_TX_HANDLE_CORRUPTION
 	can_tx_send_packet(DISPLAY_CAN_ID, buf_1, 8);
+	CAN_TX_HANDLE_CORRUPTION
 	can_tx_send_packet(DISPLAY_CAN_ID, buf_2, 8);
+	CAN_TX_HANDLE_CORRUPTION
 	can_tx_send_packet(DISPLAY_CAN_ID, buf_3, 8);
+	CAN_TX_HANDLE_CORRUPTION
 	can_tx_send_packet(DISPLAY_CAN_ID, buf_4, 8);
+	CAN_TX_HANDLE_CORRUPTION
 	buffer[bfrIx++] = msgIx = _next_tp_id(msgIx);
 	for (uint8_t i = 1; i < title_len; i++) {
 		buffer[bfrIx++] = title[i];
 		if (bfrIx == 8) {
 			can_tx_send_packet(DISPLAY_CAN_ID, buffer, 8);
+			CAN_TX_HANDLE_CORRUPTION
 			bfrIx = 0;
 			buffer[bfrIx++] = msgIx = _next_tp_id(msgIx);
 		}
@@ -222,6 +248,7 @@ void can_tx_send_music_metadata() {
 	buffer[bfrIx++] = 0x11;
 	if (bfrIx == 8) {
 		can_tx_send_packet(DISPLAY_CAN_ID, buffer, 8);
+		CAN_TX_HANDLE_CORRUPTION
 		bfrIx = 0;
 		buffer[bfrIx++] = msgIx = _next_tp_id(msgIx);
 	}
@@ -229,6 +256,7 @@ void can_tx_send_music_metadata() {
 	buffer[bfrIx++] = artist_len / 2;
 	if (bfrIx == 8) {
 		can_tx_send_packet(DISPLAY_CAN_ID, buffer, 8);
+		CAN_TX_HANDLE_CORRUPTION
 		bfrIx = 0;
 		buffer[bfrIx++] = msgIx = _next_tp_id(msgIx);
 	}
@@ -237,6 +265,7 @@ void can_tx_send_music_metadata() {
 		buffer[bfrIx++] = artist[i];
 		if (bfrIx == 8) {
 			can_tx_send_packet(DISPLAY_CAN_ID, buffer, 8);
+			CAN_TX_HANDLE_CORRUPTION
 			bfrIx = 0;
 			buffer[bfrIx++] = msgIx = _next_tp_id(msgIx);
 		}
@@ -245,6 +274,7 @@ void can_tx_send_music_metadata() {
 	buffer[bfrIx++] = 0x12;
 	if (bfrIx == 8) {
 		can_tx_send_packet(DISPLAY_CAN_ID, buffer, 8);
+		CAN_TX_HANDLE_CORRUPTION
 		bfrIx = 0;
 		buffer[bfrIx++] = msgIx = _next_tp_id(msgIx);
 	}
@@ -252,6 +282,7 @@ void can_tx_send_music_metadata() {
 	buffer[bfrIx++] = album_len / 2;
 	if (bfrIx == 8) {
 		can_tx_send_packet(DISPLAY_CAN_ID, buffer, 8);
+		CAN_TX_HANDLE_CORRUPTION
 		bfrIx = 0;
 		buffer[bfrIx++] = msgIx = _next_tp_id(msgIx);
 	}
@@ -260,6 +291,7 @@ void can_tx_send_music_metadata() {
 		buffer[bfrIx++] = album[i];
 		if (bfrIx == 8) {
 			can_tx_send_packet(DISPLAY_CAN_ID, buffer, 8);
+			CAN_TX_HANDLE_CORRUPTION
 			bfrIx = 0;
 			buffer[bfrIx++] = msgIx = _next_tp_id(msgIx);
 		}
@@ -270,7 +302,9 @@ void can_tx_send_music_metadata() {
 	}
 
 	can_tx_send_packet(DISPLAY_CAN_ID, buffer, 8);
+	CAN_TX_HANDLE_CORRUPTION
 	sending_metadata = false;
+	metadata_send_requested = false;
 }
 
 void HAL_CAN_TxMailbox0CompleteCallback(CAN_HandleTypeDef *hcan) {

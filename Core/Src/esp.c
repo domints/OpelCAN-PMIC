@@ -68,6 +68,7 @@ void esp_tick() {
 			HAL_GPIO_WritePin(CAN_LP_GPIO_Port, CAN_LP_Pin, GPIO_PIN_SET);
 			HAL_GPIO_WritePin(BUCK_EN_GPIO_Port, BUCK_EN_Pin, GPIO_PIN_RESET);
 			shutdown_requested = false;
+			can_tx_reset_metadata();
 		}
 		else
 		{
@@ -182,15 +183,11 @@ void esp_run_can_events() {
 
 	if (disconnect_requested) {
 		disconnect_requested = false;
-		//uint8_t data[1] = { CMD_SHUTDOWN };
-		//uart_send_data(data, 1);
 		connected = false;
 	}
 
 	if (reconnect_requested) {
 		reconnect_requested = false;
-		//uint8_t data[1] = { CMD_START };
-		//uart_send_data(data, 1);
 		connected = true;
 	}
 
